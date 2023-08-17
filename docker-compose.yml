@@ -1,0 +1,34 @@
+version: '3.9'
+services:
+  mongodb:
+    image: mongo
+    container_name: mongodb
+    ports:
+      - 27017:27017
+    volumes:
+      - ./mongo-data:/data/db
+      # HERE copying script into the container, to intialize replicas after container is running
+      - ./rs-init.sh:/scripts/rs-init.sh
+    # HERE  this entry point start the mongo node with replication enabled, but we need to run rs.intiate()
+    entrypoint: ['/usr/bin/mongod', '--bind_ip_all', '--replSet', 'rs0']
+    restart: unless-stopped
+    networks:
+      - test
+  api:
+    build: .
+    ports:
+      - 3000:3000
+    volumes:
+      - .:/app
+      - /app/node_modules
+    networks:
+      - test
+
+networks:
+  test:
+    driver: bridge
+# NOTE  using a network allow us to only initiate the replica set once, and when mongo data volume is saved locally, everytime we run the containers again the replica set will be intialized automatically
+
+# if we dont use network everytime we will have to use exec inside of container and intialize it ourself
+
+# we can run rs.initiate() without any config and use defualt one
